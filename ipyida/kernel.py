@@ -66,11 +66,15 @@ class IDATeeOutStream(ipykernel.iostream.OutStream):
 
     def write(self, string):
         "Write on both the previously saved IDA std output and zmq's stream"
-        if self.name == "stdout" and _ida_stdout:
-            _ida_stdout.write(string)
-        elif self.name == "stderr" and _ida_stderr:
-            _ida_stderr.write(string)
-        super(self.__class__, self).write(string)
+        # If we're in iPython console, output there, otherwise output to
+        # IDA built-in console
+        if type(sys.displayhook).__name__ != 'ZMQShellDisplayHook':
+            if self.name == "stdout" and _ida_stdout:
+                _ida_stdout.write(string)
+            elif self.name == "stderr" and _ida_stderr:
+                _ida_stderr.write(string)
+        else:
+            super(self.__class__, self).write(string)
 
 def wrap_excepthook(ipython_excepthook):
     """
@@ -110,7 +114,18 @@ class IPythonKernel(object):
                 # IDAPythonStdOut instance
                 log=logging.getLogger("ipyida_kernel")
             )
+
+            # Save existing display hook. We will restore it immediately after initialize.
+            # We could have used the IPKernelApp.displayhook_class, but this is better
+            # since it just restores the old hook (IDAPython_displayhook.displayhook)
+            old_display_hook = sys.displayhook
+
+            # Initialize; this is where the displayhook gets modified.
             app.initialize()
+            
+            # Restore saved IDA display hook. This ensures that output from IDA console
+            # is output to IDA console and not the iPython console.
+            sys.displayhook = old_display_hook
 
             main = app.kernel.shell._orig_sys_modules_main_mod
             if main is not None:
@@ -144,8 +159,8 @@ class IPythonKernel(object):
             idaapi.unregister_timer(self._timer)
         self._timer = None
         self.connection_file = None
-        sys.stdout = _ida_stdout
-        sys.stderr = _ida_stderr
+        #sys.stdout = _ida_stdout
+        #sys.stderr = _ida_stderr
 
     @property
     def started(self):
