@@ -42,11 +42,10 @@ setup(name='ipyida',
               "jupyter-kernel-proxy",
           ]
       },
-      license="BSD",
+      license="BSD-2-Clause",
       classifiers=[
           "Development Status :: 5 - Production/Stable",
           "Environment :: Plugins",
-          "License :: OSI Approved :: BSD License",
           "Programming Language :: Python :: 2.7",
           "Programming Language :: Python :: 3",
       ],
